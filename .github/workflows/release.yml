@@ -13,15 +13,18 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install QEMU and 32-bit toolchain
+      - name: Install QEMU and 32-bit libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support gcc-multilib
+          sudo apt-get install -y gcc-multilib qemu-user-static
 
-      - name: Enable QEMU for i386 ELF binaries
-        run: sudo update-binfmts --enable qemu-i386
+      - name: Register i386 binfmt handler
+        run: |
+          echo ':qemu-i386:M:0:\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x03\x00:\xff\xff\xff\xff\xff\xfe\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-i386-static:F' \
+            | sudo tee /proc/sys/fs/binfmt_misc/register || true
+          test -f /proc/sys/fs/binfmt_misc/qemu-i386 && echo "OK: i386 binfmt registered"
 
-      - name: Install i686 Rust host toolchain
+      - name: Install i686 Rust toolchain
         run: |
           rustup toolchain install stable-i686-unknown-linux-gnu --force-non-host
           rustup default stable-i686-unknown-linux-gnu
