@@ -20,7 +20,7 @@ jobs:
 
       - name: Install i686 Rust host toolchain
         run: |
-          rustup toolchain install stable-i686-unknown-linux-gnu
+          rustup toolchain install stable-i686-unknown-linux-gnu --force-non-host
           rustup default stable-i686-unknown-linux-gnu
 
       - name: Build
