@@ -13,21 +13,23 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install 32-bit C toolchain
+      - name: Install 32-bit system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib
+          sudo apt-get install -y gcc-multilib libc6-i386
 
-      - name: Add i686 Rust target
-        run: rustup target add i686-unknown-linux-gnu
+      - name: Install i686 Rust host toolchain
+        run: |
+          rustup toolchain install stable-i686-unknown-linux-gnu
+          rustup default stable-i686-unknown-linux-gnu
 
       - name: Build
-        run: cargo build --release --target i686-unknown-linux-gnu
+        run: cargo build --release
 
       - name: Prepare artifact
         run: |
           mkdir -p dist
-          cp target/i686-unknown-linux-gnu/release/libpawn_yaml.so dist/yaml.so
+          cp target/release/libpawn_yaml.so dist/yaml.so
 
       - name: Upload Artifact to Workflow
         uses: actions/upload-artifact@v4
