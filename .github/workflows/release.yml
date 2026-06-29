@@ -6,41 +6,56 @@ on:
       - master
 
 jobs:
-  build:
-    name: Build for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
-            artifact_name: yaml.so
-            output_path: target/release/libpawn_yaml.so
-          - os: windows-latest
-            target: i686-pc-windows-msvc
-            artifact_name: yaml.dll
-            output_path: target/release/pawn_yaml.dll
+  # Linux
+  build-linux:
+    name: Build for Linux (i686)
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+      options: --platform linux/386
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl git build-essential
 
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Build Crate
+        run: |
+          . $HOME/.cargo/env
+          cargo build --release
+
+      - name: Prepare Artifact
+        run: |
+          mkdir -p dist
+          cp target/release/libpawn_yaml.so dist/yaml.so
+
+      - name: Upload Artifact to Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: yaml.so
+          path: dist/yaml.so
+
+  # Windows
+  build-windows:
+    name: Build for Windows (i686)
+    runs-on: windows-latest
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y libc6:i386 libstdc++6:i386 gcc-multilib g++-multilib
-
-      - name: Install Rust toolchain
+      - name: Install Rust 32-bit toolchain
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            rustup toolchain install stable-${{ matrix.target }} --force-non-host
-          else
-            rustup toolchain install stable-${{ matrix.target }}
-          fi
-          rustup default stable-${{ matrix.target }}
+          rustup toolchain install stable-i686-pc-windows-msvc --force-non-host
+          rustup default stable-i686-pc-windows-msvc
 
       - name: Build Crate
         run: cargo build --release
@@ -49,10 +64,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp ${{ matrix.output_path }} dist/${{ matrix.artifact_name }}
+          cp target/release/pawn_yaml.dll dist/yaml.dll
 
       - name: Upload Artifact to Workflow
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.artifact_name }}
+          name: yaml.dll
+          path: dist/yaml.dll
