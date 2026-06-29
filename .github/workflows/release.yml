@@ -6,36 +6,25 @@ on:
       - master
 
 jobs:
-  # Linux
   build-linux:
     name: Build for Linux (i686)
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:22.04
-      options: --platform linux/386
     steps:
-      - name: Install system dependencies
-        run: |
-          apt-get update
-          apt-get install -y curl git build-essential
-
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Build in 32-bit Docker container
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Build Crate
-        run: |
-          . $HOME/.cargo/env
-          cargo build --release
-
-      - name: Prepare Artifact
-        run: |
-          mkdir -p dist
-          cp target/release/libpawn_yaml.so dist/yaml.so
+          docker run --rm --platform linux/386 -v ${{ github.workspace }}:/work -w /work i386/ubuntu:22.04 bash -c "
+            apt-get update &&
+            apt-get install -y curl git build-essential &&
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable &&
+            . \$HOME/.cargo/env &&
+            cargo build --release &&
+            mkdir -p dist &&
+            cp target/release/libpawn_yaml.so dist/yaml.so &&
+            chmod -R 777 dist
+          "
 
       - name: Upload Artifact to Workflow
         uses: actions/upload-artifact@v4
@@ -43,7 +32,6 @@ jobs:
           name: yaml.so
           path: dist/yaml.so
 
-  # Windows
   build-windows:
     name: Build for Windows (i686)
     runs-on: windows-latest
