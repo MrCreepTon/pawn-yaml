@@ -13,18 +13,21 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Build in 32-bit Docker container
+      - name: Install 32-bit C toolchain
         run: |
-          docker run --rm --platform linux/386 -v ${{ github.workspace }}:/work -w /work i386/ubuntu:22.04 bash -c "
-            apt-get update &&
-            apt-get install -y curl git build-essential &&
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable &&
-            . \$HOME/.cargo/env &&
-            cargo build --release &&
-            mkdir -p dist &&
-            cp target/release/libpawn_yaml.so dist/yaml.so &&
-            chmod -R 777 dist
-          "
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib
+
+      - name: Add i686 Rust target
+        run: rustup target add i686-unknown-linux-gnu
+
+      - name: Build
+        run: cargo build --release --target i686-unknown-linux-gnu
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p dist
+          cp target/i686-unknown-linux-gnu/release/libpawn_yaml.so dist/yaml.so
 
       - name: Upload Artifact to Workflow
         uses: actions/upload-artifact@v4
