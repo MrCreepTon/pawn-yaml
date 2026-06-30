@@ -15,3 +15,6 @@ serde_yaml = "0.8.11"
 string-error = "0.1.0"
 enum_primitive = "0.1.1"
 fern = "0.5.7"
+
+[patch."https://github.com/ZOTTCE/samp-rs/"]
+samp-sdk = { path = "patches/samp-sdk" }
